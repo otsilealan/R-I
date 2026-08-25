@@ -1,0 +1,97 @@
+@startuml School_Management_Portal_ComponentDiagram
+title School Management Portal — Component Diagram
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam componentFontSize 12
+skinparam linetype ortho
+
+' ── External Actors ───────────────────────────────────────────────────────────
+actor Teacher       as T
+actor "Admin /\nPrincipal" as A
+
+' ── Application ───────────────────────────────────────────────────────────────
+node "Spring Boot Application\n(school-portal)" {
+
+  package "REST Layer" {
+    [GradeScaleController]  as GSC
+    [ExamResultController]  as ERC
+    [ReportCardController]  as RCC
+  }
+
+  package "Service Layer" {
+    [GradeScaleService]   as GSS
+    [ExamResultService]   as ERS
+    [AggregateService]    as AGS
+    [ReportCardService]   as RCS
+  }
+
+  package "Repository Layer" {
+    [GradeScaleRepository]         as GSR
+    [GradeScaleEntryRepository]    as GSER
+    [ExamResultRepository]         as ERR
+    [GradeRepository]              as GR
+    [AggregateRepository]          as AGR
+    [ReportCardRepository]         as RCR
+    [ReportCardItemRepository]     as RCIR
+    [StudentRepository]            as SR
+    [CourseRepository]             as CR
+    [EnrollmentRepository]         as ENR
+    [ReportingPeriodRepository]    as RPR
+  }
+
+  package "Database Objects" {
+    [View: v_active_exam_results]       as V1
+    [MV: mv_course_aggregates]          as MV
+    [View: v_student_period_summary]    as V2
+    [Trigger: trg_revert_report_card]   as TRG
+    [Table: mv_refresh_log]             as MRL
+  }
+}
+
+database "PostgreSQL\n(school_portal)" as PG
+
+' ── Connections ───────────────────────────────────────────────────────────────
+T --> ERC : submit / correct exam results
+A --> RCC : generate / approve report cards
+A --> GSC : manage grade scales
+
+GSC --> GSS
+ERC --> ERS
+RCC --> RCS
+
+GSS --> GSR
+GSS --> GSER
+ERS --> ERR
+ERS --> GR
+ERS --> GSER
+AGS --> AGR
+AGS --> MRL
+RCS --> RCR
+RCS --> RCIR
+RCS --> AGR
+RCS --> SR
+RCS --> CR
+RCS --> ENR
+RCS --> RPR
+
+GSR --> PG
+GSER --> PG
+ERR --> PG
+GR --> PG
+AGR --> V2
+AGR --> MV
+RCR --> PG
+RCIR --> PG
+SR --> PG
+CR --> PG
+ENR --> PG
+RPR --> PG
+
+V1 --> PG
+MV --> PG
+V2 --> PG
+TRG --> PG
+MRL --> PG
+
+@enduml

@@ -1,0 +1,60 @@
+@startuml Submit_Exam_Result_Sequence
+title Submit Exam Result — Sequence Diagram
+
+skinparam sequenceMessageAlign center
+skinparam shadowing false
+skinparam responseMessageBelowArrow true
+
+actor       Teacher          as T
+participant ExamResultController as C
+participant ExamResultService    as S
+participant ExamResultRepository as ER
+participant GradeRepository      as GR
+participant GradeScaleEntryRepository as GS
+database    PostgreSQL           as DB
+
+T -> C : POST /api/exam-results\n{studentId, courseId, examName, rawScore, maxScore}
+activate C
+
+C -> S : submitResult(SubmitResultRequest)
+activate S
+
+S -> ER : findByStudentIdAndCourseIdAndExamName(...)
+activate ER
+ER -> DB : SELECT exam_results WHERE ...
+DB --> ER : results
+ER --> S : Optional<ExamResult>
+deactivate ER
+
+alt duplicate exam name for student/course
+  S --> C : throws BusinessRuleViolationException
+  C --> T : 409 Conflict
+else no duplicate
+  S -> ER : save(newExamResult)
+  activate ER
+  ER -> DB : INSERT exam_results
+  DB --> ER : saved entity (id assigned)
+  ER --> S : ExamResult (persisted)
+  deactivate ER
+
+  S -> GS : resolveGrade(rawScore, maxScore, activeGradeScale)
+  activate GS
+  GS -> DB : SELECT grade_scale_entries WHERE min_score <= pct <= max_score
+  DB --> GS : GradeScaleEntry
+  GS --> S : GradeScaleEntry
+  deactivate GS
+
+  S -> GR : save(new Grade linked to examResult)
+  activate GR
+  GR -> DB : INSERT grades
+  DB --> GR : Grade (persisted)
+  GR --> S : Grade
+  deactivate GR
+
+  S --> C : ExamResultDTO
+  deactivate S
+  C --> T : 201 Created {ExamResultDTO}
+end
+
+deactivate C
+@enduml

@@ -1,0 +1,68 @@
+@startuml Correct_Exam_Result_Sequence
+title Correct Exam Result (Supersedes Pattern) — Sequence Diagram
+
+skinparam sequenceMessageAlign center
+skinparam shadowing false
+skinparam responseMessageBelowArrow true
+
+actor       Teacher                  as T
+participant ExamResultController     as C
+participant ExamResultService        as S
+participant ExamResultRepository     as ER
+participant GradeRepository          as GR
+participant GradeScaleEntryRepository as GS
+database    PostgreSQL               as DB
+note over DB : Trigger:\ntrg_revert_report_card_on_correction\nruns AFTER INSERT on exam_results
+
+T -> C : POST /api/exam-results/{id}/correct\n{newRawScore, ...}
+activate C
+
+C -> S : correctResult(id, CorrectResultRequest)
+activate S
+
+S -> ER : findById(id)
+activate ER
+ER -> DB : SELECT * FROM exam_results WHERE id = ?
+DB --> ER : ExamResult (original)
+ER --> S : ExamResult
+deactivate ER
+
+alt original not found
+  S --> C : throws ResourceNotFoundException
+  C --> T : 404 Not Found
+else found
+  S -> ER : save(correctionRow with supersedes_id = original.id)
+  activate ER
+  ER -> DB : INSERT exam_results (supersedes_id = original.id)
+  DB --> ER : correction row persisted
+  note right of DB
+    DB trigger fires:
+    UPDATE report_cards SET status='DRAFT',
+    approved_at=NULL, approved_by=NULL
+    WHERE student_id=? AND reporting_period_id=?
+    AND status='APPROVED'
+  end note
+  ER --> S : ExamResult (correction)
+  deactivate ER
+
+  S -> GS : resolveGrade(newRawScore, maxScore, activeGradeScale)
+  activate GS
+  GS -> DB : SELECT grade_scale_entries ...
+  DB --> GS : GradeScaleEntry
+  GS --> S : GradeScaleEntry
+  deactivate GS
+
+  S -> GR : save(new Grade linked to correction)
+  activate GR
+  GR -> DB : INSERT grades
+  DB --> GR : Grade
+  GR --> S : Grade
+  deactivate GR
+
+  S --> C : ExamResultDTO (correction)
+  deactivate S
+  C --> T : 201 Created {ExamResultDTO}
+end
+
+deactivate C
+@enduml

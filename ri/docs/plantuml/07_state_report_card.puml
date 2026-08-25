@@ -1,0 +1,26 @@
+@startuml Report_Card_Status_StateMachine
+title Report Card — State Machine Diagram
+
+skinparam shadowing false
+skinparam stateFontSize 13
+skinparam stateArrowFontSize 11
+
+[*] --> DRAFT : generateReportCard()\nPOST /api/report-cards
+
+state DRAFT {
+  note "Report card is generated.\noverall_average computed.\nItems populated per course." as N1
+}
+
+state APPROVED {
+  note "approved_at and\napproved_by are set.\nNo further edits allowed." as N2
+}
+
+DRAFT --> APPROVED   : approveReportCard()\nPOST /api/report-cards/{id}/approve\n[no incomplete courses]
+
+APPROVED --> DRAFT   : Grade correction inserted\n(DB trigger fires:\ntrg_revert_report_card_on_correction)\napproved_at = NULL\napproved_by = NULL
+
+DRAFT --> DRAFT      : regenerateReportCard()\n[recalculate after correction]
+
+APPROVED --> [*]     : (terminal — read-only unless reverted)
+
+@enduml

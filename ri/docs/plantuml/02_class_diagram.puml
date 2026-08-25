@@ -1,0 +1,154 @@
+@startuml School_Management_Portal_ClassDiagram
+title School Management Portal — Domain Class Diagram (JPA Entities)
+
+' ── Styling ───────────────────────────────────────────────────────────────────
+skinparam classFontSize 12
+skinparam classAttributeFontSize 11
+skinparam classStereotypeFontSize 10
+skinparam shadowing false
+skinparam linetype ortho
+
+' ── Enumerations ──────────────────────────────────────────────────────────────
+
+enum EnrollmentStatus {
+  ACTIVE
+  WITHDRAWN
+}
+
+enum ReportCardStatus {
+  DRAFT
+  APPROVED
+}
+
+' ── Domain Entities ───────────────────────────────────────────────────────────
+
+class Student <<Entity>> {
+  - id            : Long
+  - studentNumber : String
+  - firstName     : String
+  - lastName      : String
+  - dateOfBirth   : LocalDate
+  - email         : String
+  - createdAt     : OffsetDateTime
+  - updatedAt     : OffsetDateTime
+}
+
+class Teacher <<Entity>> {
+  - id             : Long
+  - employeeNumber : String
+  - firstName      : String
+  - lastName       : String
+  - email          : String
+  - createdAt      : OffsetDateTime
+  - updatedAt      : OffsetDateTime
+}
+
+class ReportingPeriod <<Entity>> {
+  - id                   : Long
+  - name                 : String
+  - academicYear         : String
+  - startDate            : LocalDate
+  - endDate              : LocalDate
+  - gradeSubmissionClose : OffsetDateTime
+  - isActive             : boolean
+  - createdAt            : OffsetDateTime
+}
+
+class Course <<Entity>> {
+  - id                : Long
+  - courseCode        : String
+  - courseName        : String
+  - maxScore          : BigDecimal
+  - createdAt         : OffsetDateTime
+  - updatedAt         : OffsetDateTime
+}
+
+class Enrollment <<Entity>> {
+  - id         : Long
+  - status     : EnrollmentStatus
+  - enrolledAt : OffsetDateTime
+}
+
+class GradeScale <<Entity>> {
+  - id          : Long
+  - name        : String
+  - description : String
+  - isActive    : boolean
+  - createdAt   : OffsetDateTime
+  - createdBy   : String
+}
+
+class GradeScaleEntry <<Entity>> {
+  - id            : Long
+  - letterGrade   : String
+  - minScore      : BigDecimal
+  - maxScore      : BigDecimal
+  - gradePoints   : BigDecimal
+  - passIndicator : boolean
+  - displayOrder  : int
+  - sortPriority  : int
+}
+
+class ExamResult <<Entity>> {
+  - id          : Long
+  - examName    : String
+  - rawScore    : BigDecimal
+  - maxScore    : BigDecimal
+  - createdAt   : OffsetDateTime
+  - updatedAt   : OffsetDateTime
+  - createdBy   : String
+}
+
+class Grade <<Entity>> {
+  - id          : Long
+  - letterGrade : String
+  - gradePoints : BigDecimal
+  - resolvedAt  : OffsetDateTime
+  - resolvedBy  : String
+}
+
+class ReportCard <<Entity>> {
+  - id                   : Long
+  - status               : ReportCardStatus
+  - overallAverage       : BigDecimal
+  - overallGradePoints   : BigDecimal
+  - hasIncompleteCourses : boolean
+  - generatedAt          : OffsetDateTime
+  - generatedBy          : String
+  - approvedAt           : OffsetDateTime
+  - approvedBy           : String
+}
+
+class ReportCardItem <<Entity>> {
+  - id            : Long
+  - courseAverage : BigDecimal
+  - letterGrade   : String
+  - gradePoints   : BigDecimal
+  - isIncomplete  : boolean
+}
+
+' ── Associations ──────────────────────────────────────────────────────────────
+
+ReportingPeriod "1" o-- "0..*" Course           : period >
+Teacher         "1" o-- "0..*" Course           : teaches >
+
+Student         "1" o-- "0..*" Enrollment       : enrolled in >
+Course          "1" o-- "0..*" Enrollment       : has >
+Enrollment       --> EnrollmentStatus
+
+Student         "1" o-- "0..*" ExamResult       : sits >
+Course          "1" o-- "0..*" ExamResult       : for >
+ExamResult      "0..1" o-- "0..1" ExamResult    : supersedes >
+
+ExamResult      "1" *-- "1"    Grade            : resolved as >
+GradeScaleEntry "1" o-- "0..*" Grade            : maps to >
+GradeScale      "1" *-- "1..*" GradeScaleEntry  : defines >
+
+Student         "1" o-- "0..*" ReportCard       : has >
+ReportingPeriod "1" o-- "0..*" ReportCard       : covers >
+ReportCard       --> ReportCardStatus
+
+ReportCard      "1" *-- "1..*" ReportCardItem   : contains >
+Course          "1" o-- "0..*" ReportCardItem   : referenced in >
+
+@enduml

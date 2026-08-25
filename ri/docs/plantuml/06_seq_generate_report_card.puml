@@ -1,0 +1,68 @@
+@startuml Generate_Report_Card_Sequence
+title Generate Report Card — Sequence Diagram
+
+skinparam sequenceMessageAlign center
+skinparam shadowing false
+skinparam responseMessageBelowArrow true
+
+actor       Principal / Admin       as A
+participant ReportCardController    as C
+participant ReportCardService       as S
+participant AggregateRepository     as AR
+participant ReportCardRepository    as RR
+participant ReportCardItemRepository as RI
+database    PostgreSQL              as DB
+
+A -> C : POST /api/report-cards\n{studentId, reportingPeriodId}
+activate C
+
+C -> S : generateReportCard(GenerateReportCardRequest)
+activate S
+
+S -> RR : findByStudentIdAndReportingPeriodId(...)
+activate RR
+RR -> DB : SELECT * FROM report_cards WHERE ...
+DB --> RR : Optional<ReportCard>
+RR --> S  : Optional
+deactivate RR
+
+alt report card already APPROVED
+  S --> C : throws DuplicateReportCardException
+  C --> A : 409 Conflict
+else
+  S -> AR : findByStudentAndPeriod(studentId, reportingPeriodId)
+  activate AR
+  AR -> DB : SELECT * FROM v_student_period_summary\n(reads mv_course_aggregates)
+  DB --> AR : List<CourseAggregate>
+  AR --> S  : List<CourseAggregate>
+  deactivate AR
+
+  loop for each enrolled course
+    S -> S : compute course_average, letter_grade, is_incomplete
+  end
+
+  S -> S : compute overall_average, overall_grade_points,\nhas_incomplete_courses
+
+  S -> RR : save(reportCard)
+  activate RR
+  RR -> DB : INSERT / UPDATE report_cards
+  DB --> RR : ReportCard
+  RR --> S  : ReportCard (persisted)
+  deactivate RR
+
+  loop for each course aggregate
+    S -> RI : save(reportCardItem)
+    activate RI
+    RI -> DB : INSERT report_card_items
+    DB --> RI : ReportCardItem
+    RI --> S  : ReportCardItem
+    deactivate RI
+  end
+
+  S --> C : ReportCardDTO
+  deactivate S
+  C --> A : 201 Created {ReportCardDTO}
+end
+
+deactivate C
+@enduml

@@ -1,0 +1,110 @@
+@startuml School_Management_Portal_PackageDiagram
+title School Management Portal — Package / Layer Diagram
+
+' ── Styling ───────────────────────────────────────────────────────────────────
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam classFontSize 12
+skinparam packageFontSize 13
+skinparam linetype ortho
+
+' ── Packages ──────────────────────────────────────────────────────────────────
+
+package "com.school.portal" {
+
+  package "controller" <<Layer: REST API>> #LightBlue {
+    class GradeScaleController
+    class ExamResultController
+    class ReportCardController
+  }
+
+  package "service" <<Layer: Business Logic>> #LightYellow {
+    class GradeScaleService
+    class ExamResultService
+    class AggregateService
+    class ReportCardService
+  }
+
+  package "repository" <<Layer: Data Access>> #LightGreen {
+    interface StudentRepository
+    interface TeacherRepository
+    interface ReportingPeriodRepository
+    interface CourseRepository
+    interface EnrollmentRepository
+    interface GradeScaleRepository
+    interface GradeScaleEntryRepository
+    interface ExamResultRepository
+    interface GradeRepository
+    interface AggregateRepository
+    interface ReportCardRepository
+    interface ReportCardItemRepository
+  }
+
+  package "domain" <<Layer: Domain Model>> #LightCoral {
+
+    package "entity" {
+      class Student
+      class Teacher
+      class ReportingPeriod
+      class Course
+      class Enrollment
+      class GradeScale
+      class GradeScaleEntry
+      class ExamResult
+      class Grade
+      class ReportCard
+      class ReportCardItem
+    }
+
+    package "enums" {
+      enum EnrollmentStatus
+      enum ReportCardStatus
+    }
+  }
+
+  package "dto" <<Layer: Transfer Objects>> #LightGray {
+    class GradeScaleDTO
+    class GradeScaleEntryDTO
+    class CreateGradeScaleRequest
+    class ExamResultDTO
+    class SubmitResultRequest
+    class CorrectResultRequest
+    class ExamResultMapper
+    class GradeScaleMapper
+    class CourseAggregateDTO
+    class StudentRankingDTO
+    class AggregateRefreshDTO
+    class ReportCardDTO
+    class CourseResultDTO
+    class GenerateReportCardRequest
+    class ReportCardMapper
+  }
+
+  package "exception" <<Cross-cutting>> #Wheat {
+    class GlobalExceptionHandler
+    class ResourceNotFoundException
+    class BusinessRuleViolationException
+    class ClosedPeriodException
+    class DuplicateReportCardException
+  }
+
+  package "config" <<Cross-cutting>> #Wheat {
+    class JpaConfig
+  }
+}
+
+' ── Dependencies ──────────────────────────────────────────────────────────────
+
+controller --> service
+controller --> dto
+
+service --> repository
+service --> domain
+service --> dto
+service --> exception
+
+repository --> domain
+
+dto --> domain
+
+@enduml

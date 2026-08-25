@@ -1,0 +1,193 @@
+@startuml School_Management_Portal_ERD
+title School Management Portal — Entity Relationship Diagram
+
+' ── Styling ──────────────────────────────────────────────────────────────────
+skinparam linetype ortho
+skinparam classFontSize 12
+skinparam classAttributeFontSize 11
+skinparam shadowing false
+hide circle
+hide methods
+
+' ── Entities ─────────────────────────────────────────────────────────────────
+
+entity students {
+  * id              : BIGSERIAL <<PK>>
+  --
+  * student_number  : VARCHAR(20)   <<UQ>>
+  * first_name      : VARCHAR(100)
+  * last_name       : VARCHAR(100)
+  * date_of_birth   : DATE
+  * email           : VARCHAR(255)  <<UQ>>
+  * created_at      : TIMESTAMPTZ
+  * updated_at      : TIMESTAMPTZ
+}
+
+entity teachers {
+  * id              : BIGSERIAL <<PK>>
+  --
+  * employee_number : VARCHAR(20)   <<UQ>>
+  * first_name      : VARCHAR(100)
+  * last_name       : VARCHAR(100)
+  * email           : VARCHAR(255)  <<UQ>>
+  * created_at      : TIMESTAMPTZ
+  * updated_at      : TIMESTAMPTZ
+}
+
+entity reporting_periods {
+  * id                     : BIGSERIAL <<PK>>
+  --
+  * name                   : VARCHAR(100)
+  * academic_year          : VARCHAR(9)
+  * start_date             : DATE
+  * end_date               : DATE
+  * grade_submission_close : TIMESTAMPTZ
+  * is_active              : BOOLEAN
+  * created_at             : TIMESTAMPTZ
+  --
+  <<UQ>> (name, academic_year)
+  CHECK: end_date > start_date
+  CHECK: grade_submission_close >= end_date
+}
+
+entity courses {
+  * id                  : BIGSERIAL <<PK>>
+  --
+  * course_code         : VARCHAR(20)
+  * course_name         : VARCHAR(200)
+  * reporting_period_id : BIGINT     <<FK>>
+  * teacher_id          : BIGINT     <<FK>>
+  * max_score           : NUMERIC(5,2)
+  * created_at          : TIMESTAMPTZ
+  * updated_at          : TIMESTAMPTZ
+  --
+  <<UQ>> (course_code, reporting_period_id)
+  CHECK: max_score > 0
+}
+
+entity enrollments {
+  * id          : BIGSERIAL <<PK>>
+  --
+  * student_id  : BIGINT     <<FK>>
+  * course_id   : BIGINT     <<FK>>
+  * status      : VARCHAR(20) [ACTIVE|WITHDRAWN]
+  * enrolled_at : TIMESTAMPTZ
+  --
+  <<UQ>> (student_id, course_id)
+}
+
+entity grade_scales {
+  * id          : BIGSERIAL <<PK>>
+  --
+  * name        : VARCHAR(100) <<UQ>>
+    description : VARCHAR(500)
+  * is_active   : BOOLEAN
+  * created_at  : TIMESTAMPTZ
+  * created_by  : VARCHAR(100)
+}
+
+entity grade_scale_entries {
+  * id             : BIGSERIAL <<PK>>
+  --
+  * grade_scale_id : BIGINT       <<FK>>
+  * letter_grade   : VARCHAR(5)
+  * min_score      : NUMERIC(5,2)
+  * max_score      : NUMERIC(5,2)
+  * grade_points   : NUMERIC(3,2)
+  * pass_indicator : BOOLEAN
+  * display_order  : INTEGER
+  * sort_priority  : INTEGER
+  --
+  <<UQ>> (grade_scale_id, letter_grade)
+  CHECK: max_score > min_score
+}
+
+entity exam_results {
+  * id            : BIGSERIAL <<PK>>
+  --
+  * student_id    : BIGINT       <<FK>>
+  * course_id     : BIGINT       <<FK>>
+  * exam_name     : VARCHAR(200)
+  * raw_score     : NUMERIC(5,2)
+  * max_score     : NUMERIC(5,2)
+    supersedes_id : BIGINT       <<FK, self-ref>>
+  * created_at    : TIMESTAMPTZ
+  * updated_at    : TIMESTAMPTZ
+  * created_by    : VARCHAR(100)
+  --
+  CHECK: raw_score >= 0
+  CHECK: raw_score <= max_score
+  CHECK: supersedes_id <> id
+}
+
+entity grades {
+  * id                   : BIGSERIAL <<PK>>
+  --
+  * exam_result_id       : BIGINT       <<FK, UQ>>
+  * grade_scale_entry_id : BIGINT       <<FK>>
+  * letter_grade         : VARCHAR(5)
+  * grade_points         : NUMERIC(3,2)
+  * resolved_at          : TIMESTAMPTZ
+  * resolved_by          : VARCHAR(100)
+}
+
+entity report_cards {
+  * id                     : BIGSERIAL <<PK>>
+  --
+  * student_id             : BIGINT      <<FK>>
+  * reporting_period_id    : BIGINT      <<FK>>
+  * status                 : VARCHAR(10) [DRAFT|APPROVED]
+    overall_average        : NUMERIC(5,2)
+    overall_grade_points   : NUMERIC(3,2)
+  * has_incomplete_courses : BOOLEAN
+  * generated_at           : TIMESTAMPTZ
+  * generated_by           : VARCHAR(100)
+    approved_at            : TIMESTAMPTZ
+    approved_by            : VARCHAR(100)
+  --
+  <<UQ>> (student_id, reporting_period_id)
+}
+
+entity report_card_items {
+  * id             : BIGSERIAL <<PK>>
+  --
+  * report_card_id : BIGINT       <<FK>>
+  * course_id      : BIGINT       <<FK>>
+    course_average : NUMERIC(5,2)
+    letter_grade   : VARCHAR(5)
+    grade_points   : NUMERIC(3,2)
+  * is_incomplete  : BOOLEAN
+  --
+  <<UQ>> (report_card_id, course_id)
+}
+
+entity mv_refresh_log {
+  * view_name         : VARCHAR(100) <<PK>>
+  --
+  * last_refreshed_at : TIMESTAMPTZ
+  * refreshed_by      : VARCHAR(100)
+}
+
+' ── Relationships ─────────────────────────────────────────────────────────────
+
+reporting_periods ||--o{ courses : "has"
+teachers          ||--o{ courses : "teaches"
+
+students          ||--o{ enrollments    : "enrolled in"
+courses           ||--o{ enrollments    : "has"
+
+students          ||--o{ exam_results   : "sits"
+courses           ||--o{ exam_results   : "contains"
+exam_results      |o--o| exam_results   : "supersedes"
+
+exam_results      ||--|| grades             : "resolved to"
+grade_scale_entries ||--o{ grades           : "used by"
+grade_scales       ||--o{ grade_scale_entries : "defines"
+
+students          ||--o{ report_cards        : "has"
+reporting_periods ||--o{ report_cards        : "covers"
+
+report_cards      ||--o{ report_card_items   : "contains"
+courses           ||--o{ report_card_items   : "referenced in"
+
+@enduml
