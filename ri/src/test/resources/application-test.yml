@@ -1,0 +1,10 @@
+# Testcontainers overrides — actual URL is injected by @DynamicPropertySource in AbstractIntegrationTest
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/test
+    username: test
+    password: test
+  jpa:
+    show-sql: false
+  flyway:
+    locations: classpath:db/migration

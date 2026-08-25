@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/school_portal
+    username: portal_user
+    password: portal_pass
+  jpa:
+    show-sql: true
+  flyway:
+    locations: classpath:db/migration

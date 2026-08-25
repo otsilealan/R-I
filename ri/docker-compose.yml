@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: school_portal_db
+    environment:
+      POSTGRES_DB: school_portal
+      POSTGRES_USER: portal_user
+      POSTGRES_PASSWORD: portal_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - portal_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal_user -d school_portal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  portal_pgdata:
