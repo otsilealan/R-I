@@ -1,6 +1,6 @@
 # School Management Portal — Database & Results Domain
 
-> Feature branch: `001-database-results-baseline` | Java 17 · Spring Boot 3 · PostgreSQL 15 · Flyway 10
+> Feature branch: `001-database-results-baseline` | Java 21 · Spring Boot 3 · PostgreSQL 15 · Flyway 10
 
 ---
 
@@ -21,7 +21,7 @@ Authentication, PDF/HTML rendering, and academic calendar management are owned b
 
 ## Quick Start
 
-**Prerequisites**: Java 17, Maven 3.9+, Docker 24+
+**Prerequisites**: Java 21, Maven 3.9+, Docker 24+
 
 ```bash
 # 1. Start local PostgreSQL
@@ -41,7 +41,7 @@ docker compose up -d db
 
 | | |
 |---|---|
-| Language | Java 17 |
+| Language | Java 21 |
 | Framework | Spring Boot 3.x |
 | ORM | Spring Data JPA / Hibernate 6.x |
 | Database | PostgreSQL 15+ |
