@@ -13,7 +13,7 @@ verifying that the implementation meets the specification.
 
 | Requirement | Version | Notes |
 |---|---|---|
-| Java JDK | 17 (LTS) | Verify: `java -version` |
+| Java JDK | 21 (LTS) | Verify: `java -version` |
 | Maven or Gradle | Maven 3.9+ / Gradle 8+ | Project build tool |
 | Docker | 24+ | Required for Testcontainers and local PostgreSQL |
 | Docker Compose | v2+ | For local dev database |
